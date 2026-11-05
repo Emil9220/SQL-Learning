@@ -1,0 +1,106 @@
+--------------------------------------------------------------------------------
+--                            MENTORUN TAPŞIRIQLARI                           --
+--------------------------------------------------------------------------------
+
+-- Tapşırıq 1: Ümumi işçi sayı, ən yüksək, ən aşağı və yuvarlaqlaşdırılmış ortalama maaş
+SELECT 
+    COUNT(*) AS umumi_isci_sayi,
+    MAX(salary) AS en_yuksek_maas,
+    MIN(salary) AS en_asagi_maas,
+    FLOOR(AVG(salary)) AS ortalama_maas
+FROM hr.employees;
+
+
+-- Tapşırıq 2: Maaşı 5000 və daha çox olan, lakin menecer ID-si 100-dən fərqli olan işçilər
+SELECT first_name, salary, manager_id 
+FROM hr.employees
+WHERE salary >= 5000 
+  AND manager_id != 100;
+
+
+--------------------------------------------------------------------------------
+--                               EV TAPŞIRIQLARI                              --
+--------------------------------------------------------------------------------
+
+-- Task 1. Maaş artımı
+-- Şirkət bütün işçilərin maaşını 10% artırır. HR.EMPLOYEES cədvəlindən işçinin adını, soyadını, indiki maaşını və yeni maaşını göstərin.
+SELECT 
+    first_name, 
+    last_name, 
+    salary AS indiki_maas, 
+    (salary * 1.10) AS yeni_maas
+FROM hr.employees;
+
+
+-- Task 2. Ofis olan ölkələr
+-- HR.LOCATIONS cədvəlindən istifadə edərək şirkətin ofisi olan ölkələrin kodlarını göstərin. Hər kod yalnız bir dəfə görünməlidir.
+SELECT DISTINCT country_id 
+FROM hr.locations;
+
+
+-- Task 3. İki şöbə, iki fərqli şərt
+-- HR.EMPLOYEES cədvəlindən elə işçiləri tapın ki: ya 50-ci şöbədə işləyir və maaşı 3000-dən azdır, ya da 80-ci şöbədə işləyir və maaşı 10000-dən çoxdur.
+SELECT first_name, department_id, salary 
+FROM hr.employees 
+WHERE (department_id = 50 AND salary < 3000) 
+   OR (department_id = 80 AND salary > 10000);
+
+
+-- Task 4. Başlanğıc maaş aralığı
+-- HR.JOBS cədvəlindən minimum maaşı (MIN_SALARY) 4000 ilə 6000 arasında olan vəzifələrin adını və minimum maaşını göstərin.
+SELECT job_title, min_salary 
+FROM hr.jobs 
+WHERE min_salary BETWEEN 4000 AND 6000;
+
+
+-- Task 5. Seçilmiş ölkələrdəki ofislər
+-- HR.LOCATIONS cədvəlindən yalnız ABŞ, Böyük Britaniya və Kanadadakı ofislərin şəhərini və ölkə kodunu göstərin.
+SELECT city, country_id 
+FROM hr.locations 
+WHERE country_id IN ('US', 'UK', 'CA');
+
+
+-- Task 6. Ad axtarışı
+-- HR.EMPLOYEES cədvəlindən adı S hərfi ilə başlayan və tam 5 hərfdən ibarət olan, soyadının içində isə a hərfi olan işçilərin adını və soyadını göstərin.
+SELECT first_name, last_name 
+FROM hr.employees 
+WHERE first_name LIKE 'S____' 
+  AND last_name LIKE '%a%';
+
+
+-- Task 7. Rəhbəri olmayan şöbələr
+-- HR.DEPARTMENTS cədvəlindən rəhbəri (MANAGER_ID) təyin olunmamış şöbələrin adını göstərin.
+SELECT department_name 
+FROM hr.departments 
+WHERE manager_id IS NULL;
+
+
+-- Task 8. Maaş fərqi ən böyük olan vəzifələr
+-- HR.JOBS cədvəlində hər vəzifə üçün maksimum və minimum maaş arasındakı fərqi hesablayın və fərqi ən böyük olan 3 vəzifəni göstərin.
+SELECT job_title, (max_salary - min_salary) AS maas_ferqi 
+FROM hr.jobs
+ORDER BY maas_ferqi DESC 
+FETCH FIRST 3 ROWS ONLY;
+
+
+-- Task 9. 80-ci şöbənin hesabatı
+-- HR.EMPLOYEES cədvəlindən yalnız 80-ci şöbə üçün bir sətirlik hesabat çıxarın.
+-- Qeyd: Vergüldən sonra 2 rəqəm saxlamaq üçün ROUND funksiyasından istifadə olunub.
+SELECT 
+    COUNT(*) AS isci_sayi,
+    COUNT(commission_pct) AS komisiya_alan_isci_sayi,
+    ROUND(AVG(salary), 2) AS orta_maas,
+    (MAX(salary) - MIN(salary)) AS maks_min_maas_ferqi
+FROM hr.employees
+WHERE department_id = 80;
+
+
+-- Task 10. Səhvləri tapın
+-- Səhv 1: WHERE blokunda SELECT-də verilmiş taxma addan (AD ləqəbindən) istifadə etmək olmaz, birbaşa sütunun adı (FIRST_NAME) yazılmalıdır.
+-- Səhv 2: Oracle SQL-də mətnlər cüt dırnaq ("A%") yox, mütləq tək dırnaq ('A%') daxilində yazılmalıdır.
+-- Səhv 3: Boş (NULL) dəyərlər bərabərlik operatoru (= NULL) ilə yoxlanıla bilməz, bunun üçün "IS NULL" yazılmalıdır.
+
+SELECT first_name AS ad, salary
+FROM hr.employees
+WHERE first_name LIKE 'A%'
+  AND commission_pct IS NULL;
