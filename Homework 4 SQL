@@ -1,0 +1,141 @@
+--------------------------------------------------------------------------------
+-- ORACLE SQL MASTERCLASS: HR SCHEMA TASKS (1 - 10)
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+-- TASK 1: Basic Joins & Filtering
+--------------------------------------------------------------------------------
+-- Şərt: İşçilərin adını, soyadını və işlədikləri departamentin adını tapmaq.
+SELECT 
+    E.FIRST_NAME, 
+    E.LAST_NAME, 
+    D.DEPARTMENT_NAME 
+FROM HR.EMPLOYEES E
+JOIN HR.DEPARTMENTS D 
+    ON E.DEPARTMENT_ID = D.DEPARTMENT_ID;
+
+
+--------------------------------------------------------------------------------
+-- TASK 2: IN Filters & Multiple Conditions
+--------------------------------------------------------------------------------
+-- Şərt: Müəyyən departamentlərdə işləyən işçilərin siyahısı.
+SELECT 
+    FIRST_NAME, 
+    LAST_NAME, 
+    DEPARTMENT_ID, 
+    SALARY 
+FROM HR.EMPLOYEES 
+WHERE DEPARTMENT_ID IN (10, 20, 30);
+
+
+--------------------------------------------------------------------------------
+-- TASK 3 & 4: Self Join (Manager-Employee Identification)
+--------------------------------------------------------------------------------
+-- Şərt: İşçinin özünü və onun birbaşa menecerinin adını qarşılaşdırmaq.
+SELECT 
+    E.FIRST_NAME AS ISCI_ADI, 
+    M.FIRST_NAME AS MENECER_ADI 
+FROM HR.EMPLOYEES E
+JOIN HR.EMPLOYEES M 
+    ON M.EMPLOYEE_ID = E.MANAGER_ID;
+
+
+--------------------------------------------------------------------------------
+-- TASK 5: Self Join with Date Comparison
+--------------------------------------------------------------------------------
+-- Şərt: Menecerindən daha əvvəl işə qəbul olunmuş işçiləri tapmaq.
+SELECT 
+    E.FIRST_NAME,
+    E.LAST_NAME,
+    E.HIRE_DATE AS ISCI_TARIX,
+    M.FIRST_NAME AS MENECER_ADI, 
+    M.HIRE_DATE AS MENECER_TARIX 
+FROM HR.EMPLOYEES E
+JOIN HR.EMPLOYEES M 
+    ON M.EMPLOYEE_ID = E.MANAGER_ID
+WHERE E.HIRE_DATE < M.HIRE_DATE;
+
+
+--------------------------------------------------------------------------------
+-- TASK 6: Self Join with Same Job Comparison
+--------------------------------------------------------------------------------
+-- Şərt: Meneceri ilə eyni vəzifədə (JOB_ID) işləyən işçiləri tapmaq.
+SELECT 
+    E.FIRST_NAME, 
+    E.LAST_NAME, 
+    M.FIRST_NAME AS MENECER_ADI, 
+    M.LAST_NAME AS MENECER_SOYADI, 
+    E.JOB_ID  
+FROM HR.EMPLOYEES E
+JOIN HR.EMPLOYEES M 
+    ON M.EMPLOYEE_ID = E.MANAGER_ID
+WHERE E.JOB_ID = M.JOB_ID;
+
+
+--------------------------------------------------------------------------------
+-- TASK 7: Non-Managers Identification (NOT IN & Subquery)
+--------------------------------------------------------------------------------
+-- Şərt: Şirkətdə heç kimə rəhbərlik etməyən (menecer olmayan) işçiləri tapmaq.
+SELECT 
+    E.FIRST_NAME, 
+    E.LAST_NAME, 
+    E.DEPARTMENT_ID 
+FROM HR.EMPLOYEES E
+LEFT JOIN HR.EMPLOYEES M 
+    ON E.EMPLOYEE_ID = M.MANAGER_ID
+WHERE E.EMPLOYEE_ID NOT IN (
+    SELECT MANAGER_ID 
+    FROM HR.EMPLOYEES 
+    WHERE MANAGER_ID IS NOT NULL
+);
+
+
+--------------------------------------------------------------------------------
+-- TASK 8: Department Max Salary (Multi-column Subquery)
+--------------------------------------------------------------------------------
+-- Şərt: Hər bir departament üzrə ən yüksək maaş alan işçiləri tapmaq.
+SELECT 
+    FIRST_NAME, 
+    LAST_NAME, 
+    DEPARTMENT_ID, 
+    SALARY 
+FROM HR.EMPLOYEES 
+WHERE (DEPARTMENT_ID, SALARY) IN (
+    SELECT DEPARTMENT_ID, MAX(SALARY) 
+    FROM HR.EMPLOYEES 
+    WHERE DEPARTMENT_ID IS NOT NULL
+    GROUP BY DEPARTMENT_ID
+);
+
+
+--------------------------------------------------------------------------------
+-- TASK 9: Above Company Average Salary
+--------------------------------------------------------------------------------
+-- Şərt: Bütün şirkətin orta maaşından daha çox maaş alan işçiləri tapmaq.
+SELECT 
+    FIRST_NAME, 
+    LAST_NAME, 
+    SALARY 
+FROM HR.EMPLOYEES 
+WHERE SALARY > (
+    SELECT AVG(SALARY) 
+    FROM HR.EMPLOYEES
+);
+
+
+--------------------------------------------------------------------------------
+-- TASK 10: Department Salary Ranking & Comparison
+--------------------------------------------------------------------------------
+-- Şərt: Öz departamentinin orta maaşından çox alan işçilərin tapılması.
+SELECT 
+    E.FIRST_NAME, 
+    E.LAST_NAME, 
+    E.SALARY, 
+    E.DEPARTMENT_ID 
+FROM HR.EMPLOYEES E
+WHERE E.SALARY > (
+    SELECT AVG(M.SALARY) 
+    FROM HR.EMPLOYEES M 
+    WHERE M.DEPARTMENT_ID = E.DEPARTMENT_ID
+);
