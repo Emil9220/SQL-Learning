@@ -1,0 +1,120 @@
+-- Task 1
+-- Ad + boşluq + BÖYÜK soyad, adın ilk hərfi + '. ' + soyad, kiçik hərflə email + '@company.com'
+SELECT FIRST_NAME || ' ' || UPPER(LAST_NAME) AS TAM_AD,
+       SUBSTR(FIRST_NAME, 1, 1) || '. ' || LAST_NAME AS QISA_AD,
+       LOWER(EMAIL) || '@company.com' AS EMAIL
+FROM HR.EMPLOYEES
+ORDER BY LAST_NAME;
+
+
+-- Task 2
+-- Maaş minlik ayırıcı + ' AZN', illik maaş (SALARY * 12) minlik ayırıcı və 2 onluq rəqəm ilə
+-- Qeyd: ORDER BY MAAS DESC yazsaq, MAAS mətn (VARCHAR2) olduğu üçün əlifba sırası ilə sıralanar (məsələn, '9,000 AZN' '24,000 AZN'-dən böyük görünər), ədədi qiymətə görə yox.
+SELECT FIRST_NAME,
+       TO_CHAR(SALARY, 'FM999,999') || ' AZN' AS MAAS,
+       TO_CHAR(SALARY * 12, 'FM999,999,990.00') AS ILLIK_MAAS
+FROM HR.EMPLOYEES
+ORDER BY SALARY DESC;
+
+
+-- Task 3
+-- İşə girmə tarixi DD.MM.YYYY, il (EXTRACT ilə ədəd), ayın tam adı və həftənin gününün tam adı
+SELECT FIRST_NAME,
+       TO_CHAR(HIRE_DATE, 'DD.MM.YYYY') AS ISE_GIRIS,
+       EXTRACT(YEAR FROM HIRE_DATE) AS IL,
+       TO_CHAR(HIRE_DATE, 'fmMonth') AS AY_ADI,
+       TO_CHAR(HIRE_DATE, 'fmDay') AS HEFTE_GUNU
+FROM HR.EMPLOYEES
+ORDER BY HIRE_DATE ASC;
+
+
+-- Task 4
+-- Bugünkü tarixə (SYSDATE) görə yuvarlaqlaşdırılmamış tam il və tam ay stajı
+SELECT FIRST_NAME || ' ' || LAST_NAME AS ISCI,
+       TO_CHAR(HIRE_DATE, 'fmDD Month YYYY') AS ISE_GIRIS,
+       TRUNC(MONTHS_BETWEEN(SYSDATE, HIRE_DATE) / 12) || ' il ' ||
+       TRUNC(MOD(MONTHS_BETWEEN(SYSDATE, HIRE_DATE), 12)) || ' ay' AS STAJ
+FROM HR.EMPLOYEES
+ORDER BY MONTHS_BETWEEN(SYSDATE, HIRE_DATE) DESC;
+
+
+-- Task 5
+-- a) 3 ay sonrası, işə girdiyi ayın son günü və o günə qalan gün sayı
+SELECT FIRST_NAME,
+       HIRE_DATE,
+       ADD_MONTHS(HIRE_DATE, 3) AS SINAQ_BITIR,
+       LAST_DAY(HIRE_DATE) AS ILK_MAAS_GUNU,
+       LAST_DAY(HIRE_DATE) - TRUNC(HIRE_DATE) AS MAASA_QALAN_GUN
+FROM HR.EMPLOYEES;
+
+-- b) 28.02.2025 + 3 ay ADD_MONTHS ilə:
+-- Nəticə 31.05.2025 çıxır, çünki fevral ayının son gününə ADD_MONTHS tətbiq ediləndə Oracle hədəf ayın (may) son gününü (31.05.2025) qaytarır.
+SELECT TO_CHAR(ADD_MONTHS(TO_DATE('28.02.2025', 'DD.MM.YYYY'), 3), 'DD.MM.YYYY') AS NETICE
+FROM DUAL;
+
+
+-- Task 6
+-- Səhvlər:
+-- 1) TO_CHAR(HIRE_DATE, 'MM') iki rəqəmli '03' qaytarır, '3' ilə müqayisə boş nəticə verir -> '03' olmalıdır.
+-- 2) NVL(COMMISSION_PCT, 'yoxdur') rəqəmli sütunla mətni qarışdırır və 0.20 yerinə .2 çıxarır -> TO_CHAR(COMMISSION_PCT, '0.99') ilə formatlayıb NVL-ə ötürmək lazımdır.
+-- 3) Sütun adları/şərtə uyğun nəticə formatı dəqiqləşdirilir.
+SELECT CONCAT(FIRST_NAME, ' ' || LAST_NAME) || ', komissiya: ' ||
+       NVL(TRIM(TO_CHAR(COMMISSION_PCT, '0.99')), 'yoxdur') AS MELUMAT
+FROM HR.EMPLOYEES
+WHERE TO_CHAR(HIRE_DATE, 'MM') = '03';
+
+
+-- Task 7
+-- Aylar üzrə işə girənlərin sayı (təqvim sırası ilə: 01..12)
+-- Qeyd: ORDER BY AY yazsaq, AY sütunu mətn (ayın adı) olduğu üçün əlifba sırası ilə sıralanardı (April, August, December...), təqvim sırası ilə yox.
+SELECT TO_CHAR(HIRE_DATE, 'MM') AS AY_NO,
+       TO_CHAR(HIRE_DATE, 'fmMonth') AS AY,
+       COUNT(*) AS ISCI_SAYI
+FROM HR.EMPLOYEES
+GROUP BY TO_CHAR(HIRE_DATE, 'MM'), TO_CHAR(HIRE_DATE, 'fmMonth')
+ORDER BY AY_NO;
+
+
+-- Task 8
+-- Soyadı 7 və daha çox hərf olan işçilər üçün login və tireli telefon nömrəsi
+SELECT EMPLOYEE_ID,
+       LOWER(SUBSTR(FIRST_NAME, 1, 1) || LAST_NAME) ||
+       LPAD(EMPLOYEE_ID, 4, '0') AS LOGIN,
+       REPLACE(PHONE_NUMBER, '.', '-') AS TELEFON
+FROM HR.EMPLOYEES
+WHERE LENGTH(LAST_NAME) >= 7
+ORDER BY LOGIN;
+
+
+-- Task 9
+-- İllər üzrə işə qəbul hesabatı
+-- Qeyd: MIN(TO_CHAR(HIRE_DATE, 'DD.MM.YYYY')) yazsaq, tarix əvvəlcə DD.MM.YYYY mətninə çevriləcək və günə (DD) görə mətn kimi sıralanacaq (məsələn, '01.10.2005' '15.01.2005'-dən kiçik sayılacaq), real ən erkən tarix tapılmayacaq.
+SELECT EXTRACT(YEAR FROM HIRE_DATE) AS IL,
+       COUNT(*) AS ISCI_SAYI,
+       TO_CHAR(MIN(HIRE_DATE), 'DD.MM.YYYY') AS ILK_TARIX,
+       TO_CHAR(MAX(HIRE_DATE), 'DD.MM.YYYY') AS SON_TARIX,
+       TO_CHAR(AVG(SALARY), 'FM999,999,990.00') AS ORTA_MAAS
+FROM HR.EMPLOYEES
+GROUP BY EXTRACT(YEAR FROM HIRE_DATE)
+ORDER BY IL ASC;
+
+
+-- Task 10
+-- a) Qısa həftə günü + tarix və həftə sonu / iş günü bölgüsü
+-- Qeyd: TO_CHAR(HIRE_DATE, 'DAY') sonunda boşluqlarla sabit uzunluqda qayıdır (məsələn, 'SATURDAY '), həmçinin NLS_DATE_LANGUAGE dilindən asılı ola bilər; ona görə '=' ilə birbaşa 'SATURDAY' müqayisəsi ya uyğun gəlməyə bilər, ya da dil dəyişəndə işləməz.
+SELECT FIRST_NAME,
+       TO_CHAR(HIRE_DATE, 'Dy', 'NLS_DATE_LANGUAGE=AMERICAN') || ', ' ||
+       TO_CHAR(HIRE_DATE, 'DD.MM.YYYY') AS ISE_GIRIS,
+       CASE
+           WHEN TO_CHAR(HIRE_DATE, 'DY', 'NLS_DATE_LANGUAGE=AMERICAN') IN ('SAT', 'SUN')
+               THEN 'Hefte sonu'
+           ELSE 'Is gunu'
+       END AS GUN_NOVU
+FROM HR.EMPLOYEES;
+
+-- b) Həftənin günləri üzrə işə girənlərin sayı (ən çox olan yuxarıda)
+SELECT TO_CHAR(HIRE_DATE, 'fmDay', 'NLS_DATE_LANGUAGE=AMERICAN') AS GUN,
+       COUNT(*) AS ISCI_SAYI
+FROM HR.EMPLOYEES
+GROUP BY TO_CHAR(HIRE_DATE, 'fmDay', 'NLS_DATE_LANGUAGE=AMERICAN')
+ORDER BY ISCI_SAYI DESC;
